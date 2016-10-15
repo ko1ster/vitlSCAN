@@ -1,0 +1,121 @@
+<link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
+
+<link rel="import" href="../bower_components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../bower_components/paper-fab/paper-fab.html">
+<link rel="import" href="../bower_components/paper-styles/paper-styles-classes.html">
+
+<link rel="import" href="../bower_components/neon-animation/neon-animation.html">
+
+<link rel="import" href="shared-styles.html">
+<link rel="import" href="th-loader.html">
+
+<!--
+  Login splash screen, visible when app is not ready,
+  e.g. in loading state, or have no authenticated user available.
+
+  Overlays the whole screen.
+-->
+<dom-module id="th-login">
+  <template>
+    <style include="iron-flex">
+      :host {
+        @apply(--layout);
+        @apply(--layout-fit);
+        @apply(--layout-center-center);
+
+        position: fixed;
+
+        z-index: 103;
+        background: var(--paper-grey-100);
+      }
+
+      #loginForm {
+        max-width: 400px;
+        width: 90vw;
+      }
+
+      paper-fab.facebook {
+        color: white;
+        background: #3b5998;
+      }
+    </style>
+
+    <paper-dialog modal id="loginForm" entry-animation="scale-up-animation" exit-animation="fade-out-animation">
+      <style>
+        .buttons {
+          margin-top: 32px !important;
+          margin-bottom: 8px !important;
+        }
+      </style>
+      <h2>Login</h2>
+      <form name="th-login-form">
+        <paper-input label="Email" value="{{creds.email}}"></paper-input>
+        <paper-input label="Password" type="password" value="{{creds.password}}"></paper-input>
+        <div class="buttons layout horizontal">
+          <span class="flex"></span>
+          <paper-button type="submit" noink on-tap="_loginWithCreds">Login</paper-button>
+        </div>
+      </form>
+    </paper-dialog>
+
+    <iron-localstorage name="th-creds" value="{{creds}}" on-iron-localstorage-load-empty="_setDefaultCreds"></iron-localstorage>
+
+    <th-loader hidden$="{{!loading}}" size="80px"></th-loader>
+  </template>
+  <script>
+    Polymer({
+      is: 'th-login',
+
+      properties: {
+        /**
+         * Defines if loader visible
+         */
+        loading: {
+          type: Boolean,
+          value: true
+        },
+
+        /**
+         * Stores creds before dispatching them in event
+         */
+        creds: {
+          type: Object,
+          value: {}
+        }
+      },
+
+      /**
+       * Opens login modal, allowing to login either with User creds
+       * or via facebook.
+       */
+      open: function() {
+        this.$.loginForm.open();
+      },
+
+      /**
+       * Closes modal
+       */
+      close: function() {
+        this.$.loginForm.close();
+      },
+
+      /**
+       * Dispatches login with given creds
+       *
+       * @private
+       */
+      _loginWithCreds: function(){
+        this.fire('login', this.creds);
+      },
+
+      _setDefaultCreds: function() {
+        this.creds = {
+          email: '',
+          password: ''
+        };
+      }
+    });
+  </script>
+</dom-module>

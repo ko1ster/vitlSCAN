@@ -1,0 +1,585 @@
+<link rel="import" href="../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../bower_components/app-layout/app-drawer/app-drawer.html">
+<link rel="import" href="../bower_components/app-layout/app-drawer-layout/app-drawer-layout.html">
+<link rel="import" href="../bower_components/app-layout/app-header/app-header.html">
+<link rel="import" href="../bower_components/app-layout/app-header-layout/app-header-layout.html">
+<link rel="import" href="../bower_components/app-layout/app-scroll-effects/app-scroll-effects.html">
+<link rel="import" href="../bower_components/app-layout/app-toolbar/app-toolbar.html">
+<link rel="import" href="../bower_components/app-route/app-location.html">
+<link rel="import" href="../bower_components/app-route/app-route.html">
+
+<link rel="import" href="../bower_components/iron-icon/iron-icon.html">
+<link rel="import" href="../bower_components/iron-icons/iron-icons.html">
+<link rel="import" href="../bower_components/iron-pages/iron-pages.html">
+<link rel="import" href="../bower_components/iron-selector/iron-selector.html">
+<link rel="import" href="../bower_components/iron-localstorage/iron-localstorage.html">
+
+<link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../bower_components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../bower_components/paper-toggle-button/paper-toggle-button.html">
+
+<script src="../bower_components/lodash/lodash.js"></script>
+<script src="../bower_components/evrythng/dist/evrythng.js"></script>
+<script src="../bower_components/mqttjs-browserified/dist/mqtt.js"></script>
+<script src="../bower_components/evrythng-ws/dist/evrythng-ws.js"></script>
+<script src="../bower_components/evrythng-hub/dist/evrythng-hub.js"></script>
+<script src="../bower_components/evrythng-scan/dist/evrythng-scan.min.js"></script>
+<script src="../bower_components/time-elements/time-elements.js"></script>
+
+<link rel="import" href="shared-styles.html">
+<link rel="import" href="th-core.html">
+<link rel="import" href="th-iconset.html">
+<link rel="import" href="th-login.html">
+<link rel="import" href="th-user.html">
+<link rel="import" href="th-toolbar-search.html">
+<link rel="import" href="th-evt-debug.html">
+
+<dom-module id="th-app">
+  <template>
+    <style include="iron-flex shared-styles">
+      :host {
+        --primary-color: var(--paper-grey-900);
+        --secondary-color: black;
+
+        display: block;
+      }
+
+      :host(.with-dev-tool) app-drawer-layout {
+        height: 50vh;
+        transform: scale(.96);
+      }
+    </style>
+
+    <iron-localstorage name="th-settings" value="{{settings}}" on-iron-localstorage-load-empty="_setDefaultSettings"></iron-localstorage>
+
+    <app-drawer-layout fullbleed hidden$="[[!_isReady(app, user)]]">
+      <app-location route="{{route}}"></app-location>
+      <app-route
+        route="{{route}}"
+        pattern="/:page"
+        data="{{routeData}}"
+        tail="{{subroute}}"></app-route>
+
+      <!-- Drawer content -->
+      <app-drawer>
+        <container>
+
+          <section class="header-logo">
+            <img src="/images/pg-logo-blue.png" alt="Procter & Gamble" sizing="cover"></iron-image>
+          </section>
+          <hr>
+
+          <section>
+            <span class="drawer-item" on-tap="_scan">
+              <iron-icon icon="th:scan"></iron-icon>
+              <span>Scan</span>
+            </span>
+          </section>
+
+          <hr>
+
+          <section>
+            <iron-selector selected="[[page]]" attr-for-selected="name" role="navigation">
+              <a class="drawer-item" name="goods" href="/goods">
+                <iron-icon icon="th:thng"></iron-icon><span>Goods</span>
+              </a>
+              <a class="drawer-item" name="batches" href="/batches">
+                <iron-icon icon="th:collection"></iron-icon><span>Batches</span>
+              </a>
+
+              <hr>
+              <a class="drawer-item" name="settings" href="/settings">
+                <iron-icon icon="settings"></iron-icon><span>Settings</span>
+              </a>
+            </iron-selector>
+          </section>
+
+          <footer>
+            <a href="https://evrythng.com" class="th-powered-by">
+              <span>Powered by</span><img class="mini-logo" src="/images/evt-logo-mini.jpg" alt="EVRYTHNG">
+            </a>
+          </footer>
+        </container>
+      </app-drawer>
+
+      <!-- Main content -->
+      <app-header-layout id="appHeader" has-scrolling-region>
+        <app-header condensed reveals effects="waterfall">
+          <app-toolbar>
+            <paper-icon-button icon="menu" drawer-toggle></paper-icon-button>
+            <th-toolbar-search query="{{query}}"></th-toolbar-search>
+            <paper-icon-button icon="bug-report" on-tap="toggleDevTool"></paper-icon-button>
+            <span class="flex"></span>
+            <th-user user="{{user}}" on-logout="_logout"></th-user>
+          </app-toolbar>
+        </app-header>
+
+        <iron-pages
+            id="thPages"
+            selected="[[page]]"
+            attr-for-selected="name"
+            fallback-selection="view404"
+            role="main">
+          <th-goods name="goods" user="{{user}}" route="{{subroute}}" query="{{query}}"></th-goods>
+          <th-batches name="batches" user="{{user}}" route="{{subroute}}" query="{{query}}"></th-batches>
+          <th-settings name="settings" settings="{{settings}}" route="{{subroute}}" query="{{query}}"></th-settings>
+          <th-view404 name="view404"></th-view404>
+        </iron-pages>
+      </app-header-layout>
+    </app-drawer-layout>
+
+    <th-login id="loginForm" hidden$="[[_isReady(app, user)]]" loading="{{loading}}" on-login="_onLogin"></th-login>
+    <th-evt-debug id="debugTool" on-state-changed="_onDevToolStateChanged"></th-evt-debug>
+    <paper-dialog id="resetSettings">
+      <h2>Configuration error</h2>
+      <p>Do you want to reset settings to defaults?</p>
+      <div class="buttons">
+        <paper-button dialog-dismiss>No</paper-button>
+        <paper-button on-tap="resetSettings">Yes</paper-button>
+      </div>
+    </paper-dialog>
+  </template>
+
+  <script>
+    Polymer({
+      is: 'th-app',
+
+      properties: {
+        /**
+         * Represents current page of application
+         */
+        page: {
+          type: String,
+          observer: '_onPageChanged'
+        },
+
+        /**
+         * Represents current search query
+         */
+        query: {
+          type: String,
+          value: ''
+        },
+
+        /**
+         * Current EVRYTHNG application object.
+         * Allows users to login/logout, represents an Application Scope
+         *
+         * @see https://developers.evrythng.com/reference#applications-1
+         * @see https://developers.evrythng.com/docs/scope-api-and-permissions#section-2-application-key
+         */
+        app: Object,
+
+        /**
+         * Current EVRYTHNG User object.
+         * Grants access to application data (thngs, collections). And
+         * allows to make actions on them (read, update)
+         *
+         * @see https://developers.evrythng.com/reference#application-users-1
+         * @see https://developers.evrythng.com/docs/scope-api-and-permissions#section-3-app-user-key
+         */
+        user: {
+          type: Object,
+          observer: '_onUserChanged'
+        }
+      },
+
+      observers: [
+        'setupEVT(settings.*)',
+        '_routePageChanged(routeData.page)',
+        '_onTargetEnvironmentChange(settings.local)'
+      ],
+
+      behaviors: [
+        TH.behaviors.showToast,
+        TH.behaviors.scrollTarget
+      ],
+
+      /**
+       * Holds default settings of application
+       */
+      defaultSettings: {
+        /**
+         * Application API Key
+         * this key user to create EVT.Application instance
+         */
+        apiKey: 'YhPOD9sCxY5SKqKurD5NgdaEvaXmAz4dzC2RBJYMeOs5xklxxKRDXjsJ7LXRFMFjirr5ckAiptPo7rxw',
+
+        /**
+         * URL of EVRYTHNG API
+         */
+        apiUrl: 'https://api-eu.evrythng.com',
+
+        /**
+         * THNGHUB API URL
+         *
+         * @see https://developers.evrythng.com/docs/thng-hub
+         * @see https://developers.evrythng.com/docs/thng-hub#section-local-apis
+         */
+        localhostApiUrl: 'http://192.168.0.12:8080',
+
+        /**
+         * URL of Pub/Sub broker API
+         *
+         * @see https://developers.evrythng.com/docs/pubsub
+         */
+        wsApiUrl: 'wss://ws.evrythng.com:443/mqtt',
+
+        /**
+         * Local Pub/Sub broker API
+         *
+         * @see https://developers.evrythng.com/docs/thng-hub#section-local-apis
+         */
+        wsLocalhostApiUrl: 'ws://localhost:4000/mqtt',
+
+        /**
+         * Defines local request timeout before switching to cloud host
+         */
+        hubTimeout: 1000,
+
+        /**
+         * Make local requests by default (only to THNGHUB endpoint)
+         */
+        local: false
+      },
+
+      /**
+       * @see Polymer.Base#ready
+       */
+      ready: function() {
+        var scope = this;
+
+        scope.set('loading', true);
+
+        // Initialise EVT.js after
+        // settings are read from storage and all children elements are ready.
+        scope.async(function() {
+          // TIP: Quite typical flow, creating javascript applications
+          // is to init the evrythng.js with correct settings and then
+          // create an "actionable" object, e.g. App, User or Operator
+          scope.initEVT();
+          scope.initApp()
+            .then(function() {
+              scope.set('loading', false);
+            });
+
+          scope.storeScrollingTarget();
+        });
+      },
+
+      /**
+       * Initialises the evrythng.js and its plugins
+       */
+      initEVT: function() {
+        if (this.settings) {
+          // TIP: Hub plugin depends on WS, so
+          // should be initialised strictly after
+          EVT.use(EVT.WS);
+          EVT.use(EVT.Hub);
+          EVT.use(EVT.Scan);
+
+          this.setupEVT(this.settings);
+        }
+      },
+
+      /**
+       * Applies the given settings to evrythng.js and its plugins
+       *
+       * @param {Object} settings @see this.defaultSettings
+       */
+      setupEVT: function(settings) {
+        if (settings) {
+          settings = this.settings;
+
+          // TIP: Typically, evrythng.js and its plugins
+          // have setup method to apply different settings.
+          // This method can be called at any time with updated configuration.
+          EVT.WS.setup({
+            apiUrl: settings.wsApiUrl
+          });
+
+          EVT.Hub.setup({
+            httpApiUrl: settings.localhostApiUrl,
+            wsApiUrl: settings.wsLocalhostApiUrl,
+            timeout: settings.hubTimeout,
+            remote: !settings.local
+          });
+
+          EVT.Scan.setup({
+            redirect: false
+          });
+
+          EVT.setup(settings);
+        }
+      },
+
+      /**
+       * Inits the evrythng.js Application object
+       */
+      initApp: function() {
+        var scope = this;
+        // Application entity defines the certain scope of
+        // access and therefore, have appropriate api key.
+        var app = new EVT.App({
+          apiKey: this.settings.apiKey
+          /*facebook: {
+            version: 'v2.7',
+            cookie: true
+          }*/
+        });
+
+        // TIP: EVT.App exposes $init property,
+        // containing a promise, allowing to wait till
+        // the application is ready for action
+        return app.$init.then(function(response) {
+            if (response.user) {
+              // If initialisation response have
+              // a user object, it means that previous session
+              // is still active. We can act on behalf of this User instance
+              scope.set('user', response.user);
+            } else {
+              // Otherwise, invite to login
+              scope.$.loginForm.open();
+            }
+
+            scope.set('app', app);
+          })
+          .catch(function(e) {
+            // Failed to instantiate an application,
+            // this may be caused by a configuration error
+            scope.$.resetSettings.open();
+          });
+      },
+
+      /**
+       * Stores scrolling target to be reused by children components
+       */
+      storeScrollingTarget: function() {
+        this.setScrollTarget(this.$.appHeader.$.contentContainer);
+      },
+
+      _scan: function() {
+        var scope = this;
+
+        scope.set('loading', true);
+        scope.app.scan()
+          .then(function (res) {
+            scope.set('route.path', '/goods/' + res.evrythngId);
+          })
+          .catch(function(err) {
+            scope.showToast('Scan failed');
+          })
+          .then(function() {
+            scope.set('loading', false);
+          });
+      },
+
+      /**
+       * Detects if application is ready (in authorised state to retrieve/modify account data)
+       *
+       * @param {EVT.App} app
+       * @param {EVT.User} user
+       * @returns {Boolean}
+       * @private
+       */
+      _isReady: function(app, user) {
+        return Boolean(app && user);
+      },
+
+      /**
+       * Handles change of current user object.
+       * If it's present, closes the login overlay,
+       * otherwise - opens it.
+       *
+       * @param {EVT.User} user
+       * @private
+       */
+      _onUserChanged: function(user) {
+        this.$.thPages.fire('iron-resize');
+
+        if (user) {
+          this.$.loginForm.close();
+          if (this.route.path === '/') {
+            this.set('route.path', '/goods');
+          }
+        } else {
+          this.$.loginForm.open();
+        }
+      },
+
+      /**
+       * Handles route page change, redirecting to default
+       * if empty.
+       *
+       * @param {String} page
+       * @private
+       */
+      _routePageChanged: function(page) {
+        this.page = page || 'goods';
+      },
+
+      /**
+       * Handles page change, lazily loading the requested page,
+       * or throwing 404 if failed.
+       *
+       * @param {String} page Page to load
+       * @private
+       */
+      _onPageChanged: function(page) {
+        // Load page import on demand. Show 404 page if fails
+        var resolvedPageUrl = this.resolveUrl('th-' + page + '.html');
+        this.importHref(resolvedPageUrl, null, this._showPage404, true);
+      },
+
+      /**
+       * Shows 404 page.
+       * @private
+       */
+      _showPage404: function() {
+        this.page = 'view404';
+      },
+
+      /**
+       * Toggles target environment (local/cloud).
+       *
+       * @private
+       */
+      _toggleTargetEnvironment: function() {
+        this.set('settings.local', !this.settings.local);
+      },
+
+      /**
+       * Reacts to target environment change,
+       * setting appropriate icon to menu item.
+       *
+       * @param {Boolean} isLocalEnabled
+       * @private
+       */
+      _onTargetEnvironmentChange: function(isLocalEnabled) {
+        //
+      },
+
+      /**
+       * Handles change of settings in event.
+       * Triggers the EVT setup.
+       *
+       * @param {CustomEvent} e Polymer event with settings payload
+       * @private
+       */
+      _onSettingsChange: function(e) {
+        var settings = e.detail;
+        var fields = [ 'apiKey', 'apiUrl', 'localhostUrl', 'wsApiUrl', 'wsLocalhostUrl' ];
+
+        fields.forEach(function(field) {
+          this.set('settings.' + field, settings[field]);
+        }, this);
+      },
+
+      /**
+       * Handles login hook event, redirecting the flow
+       * to login method.
+       *
+       * @param {CustomEvent} e
+       *
+       * @private
+       */
+      _onLogin: function(e) {
+        this._login(e.detail);
+      },
+
+      /**
+       * Performs login with a given config
+       * @param {Object|String} config login configuration for EVT.App
+       *
+       * @private
+       */
+      _login: function(config) {
+        var scope = this;
+
+        scope.app.login(config)
+          .then(function(res) {
+            // If authentication request have user
+            // inside, expose it to the application.
+            if (res.user) {
+              scope.set('user', res.user);
+            }
+          })
+          .catch(function(e) {
+            if (e.errors) {
+              // All errors from EVRYTHNG API will have 'errors'
+              // field in a payload, containing messages may be useful for
+              // a user.
+              scope.showToast(e.errors[0]);
+            } else {
+              scope.showToast('Failed to login');
+            }
+          });
+      },
+
+      /**
+       * Performs logout out of application.
+       *
+       * @private
+       */
+      _logout: function() {
+        var scope = this;
+
+        if (scope.user) {
+          scope.user.logout()
+            .then(function() {
+              scope.set('user', null);
+            })
+            .catch(function() {
+              scope.showToast('Failed to logout');
+            });
+        }
+      },
+
+      /**
+       * Handles iron-storage events, in case no settings were found in
+       * local storage.
+       *
+       * @private
+       */
+      _setDefaultSettings: function() {
+        this.settings = this.defaultSettings;
+      },
+
+      /**
+       * Handles unsuccessful start of application after incorrect
+       * configuration.
+       */
+      resetSettings: function() {
+        var scope = this;
+
+        scope.$.resetSettings.close();
+        scope._setDefaultSettings();
+        scope.set('loading', true);
+
+        this.initApp()
+          .then(function() {
+            scope.set('loading', false);
+          });
+      },
+
+      /**
+       * Toggles the evt trace tool which displays all requests made to EVRYTHNG API.
+       */
+      toggleDevTool: function() {
+        this.$.debugTool.opened = !this.$.debugTool.opened;
+      },
+
+      /**
+       * When devtool is toggled, sets the correct class on the root element.
+       *
+       * @param {CustomEvent} e
+       * @private
+       */
+      _onDevToolStateChanged: function(e) {
+        this.classList.toggle('with-dev-tool', e.detail);
+      }
+    });
+  </script>
+</dom-module>

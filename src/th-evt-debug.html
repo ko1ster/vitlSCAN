@@ -1,0 +1,225 @@
+<link rel="import" href="../bower_components/paper-material/paper-material.html">
+<link rel="import" href="../bower_components/iron-localstorage/iron-localstorage.html">
+<link rel="import" href="../bower_components/iron-list/iron-list.html">
+
+<link rel="import" href="shared-styles.html">
+<link rel="import" href="th-json-renderer.html">
+
+<!--
+  EVT Trace Console
+
+  Logs requests and responses made and received by evrythng.js
+  using the EVT's interceptors feature.
+-->
+<dom-module id="th-evt-debug">
+  <template>
+    <style include="shared-styles">
+      :host {
+        @apply(--layout-block);
+        @apply(--layout-fixed-bottom);
+        @apply(--dark-theme);
+
+        transition: all .3s ease;
+        /* +10% to hide the shadow */
+        transform: translateY(110%);
+
+        /* json-renderer theme */
+        --json-theme-link: var(--paper-grey-400);
+        --json-theme-disclosure: var(--paper-grey-400);
+        --json-theme-syntax: var(--paper-grey-600);
+        --json-theme-string: var(--paper-green-300);
+        --json-theme-number: var(--paper-blue-400);
+        --json-theme-boolean: var(--paper-amber-500);
+        --json-theme-key: var(--paper-grey-400);
+        --json-theme-keyword: var(--paper-amber-500);
+
+        --text-base-color: var(--paper-grey-50);
+        --background-base-color: var(--paper-grey-900);
+      }
+
+      :host(.opened) {
+        transform: translateY(0%);
+      }
+
+      container {
+        @apply(--layout-vertical);
+        @apply(--app-code-font);
+
+        display: block;
+
+        height: 50vh;
+        overflow: auto;
+
+        background-color: var(--background-base-color);
+        color: var(--text-base-color);
+
+        /* Non-material shadow to be pointed upwards */
+        box-shadow: 0 -20px 70px rgba(0, 0, 0, .6);
+      }
+
+      th-json-renderer {
+        margin-bottom: var(--app-unit-xs);
+      }
+
+      .tools {
+        position: absolute;
+        right: 0;
+        top: 0;
+
+        text-align: right;
+        color:  var(--text-base-color);
+        padding: var(--app-unit-md) var(--app-unit-lg);
+      }
+
+      .stats {
+        @apply(--app-code-font);
+      }
+
+    </style>
+
+    <container id="scroller">
+      <template is="dom-repeat" items="{{events}}">
+        <div>
+          <span>&gt; </span><span>{{item.type}}</span>
+          <span>{{item.payload.url}}</span>
+          <th-json-renderer json="[[item.payload]]"></th-json-renderer>
+        </div>
+      </template>
+    </container>
+
+    <div class="tools">
+      <div class="toolbar">
+        <paper-icon-button icon="th:eraser" on-tap="clean"></paper-icon-button>
+        <paper-icon-button icon="close" on-tap="close"></paper-icon-button>
+      </div>
+      <div class="stats">
+        <span>total: </span><span>{{total}}</span>
+      </div>
+    </div>
+
+    <iron-localstorage name="th-devtool-opened" value="{{opened}}" on-iron-localstorage-load-empty="close"></iron-localstorage>
+
+  </template>
+  <script>
+    Polymer({
+      is: 'th-evt-debug',
+
+      properties: {
+        opened: {
+          type: Boolean,
+          observer: '_onOpenedChanged'
+        },
+
+        events: {
+          type: Array,
+          value: []
+        },
+
+        total: {
+          type: Number,
+          value: 0
+        }
+      },
+
+      ready: function() {
+        var scope = this;
+
+        EVT.settings.interceptors.push({
+          request: scope.logRequest.bind(scope),
+          response: scope.logResponse.bind(scope)
+        });
+      },
+
+      /**
+       * Logs a EVRYTHNG API request.
+       *
+       * @param {Object} opts
+       */
+      logRequest: function(opts) {
+        this.inc('total', +1);
+        this.log({
+          type: 'REQUEST',
+          payload: opts
+        });
+      },
+
+      /**
+       * Logs EVRYTHNG response.
+       *
+       * @param {Object} res
+       * @returns {*}
+       */
+      logResponse: function(res) {
+        this.log({
+          type: 'RESPONSE',
+          payload: res
+        });
+
+        return res;
+      },
+
+      /**
+       * (De)Increments a property by its name.
+       *
+       * @param {String} vr name of property
+       * @param {Number} inc increment to add to prop
+       */
+      inc: function(vr, inc) {
+        this.set(vr, this[vr] + inc);
+      },
+
+      /**
+       * Pushes given log item to the array of logs
+       *
+       * @param {Object} obj
+       */
+      log: function(obj) {
+        this.push('events', obj);
+        this.ensureFull();
+
+        // When dom-repeat rerendered,
+        // scrolls to the very bottom of log
+        this.async(function() {
+          this.$.scroller.scrollTop = this.$.scroller.scrollHeight;
+        });
+      },
+
+      /**
+       * Ensures that we're not rendering too much,
+       * maintaining capacity of events buffer.
+       */
+      ensureFull: function() {
+        if (this.events.length > 100) {
+          this.splice('events', 0, 1);
+        }
+      },
+
+      /**
+       * Cleans events buffer
+       */
+      clean: function() {
+        this.splice('events', 0, this.events.length);
+        this.set('total', 0);
+      },
+
+      /**
+       * Closes the debug overlay
+       */
+      close: function() {
+        this.set('opened', false);
+      },
+
+      /**
+       * Triggered on inside or outside overlay state change,
+       * updating the view assets accordingly.
+       *
+       * @param {Boolean} opened
+       * @private
+       */
+      _onOpenedChanged: function(opened) {
+        this.classList.toggle('opened', opened);
+        this.fire('state-changed', opened);
+      }
+    });
+  </script>
+</dom-module>

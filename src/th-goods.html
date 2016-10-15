@@ -1,0 +1,105 @@
+<link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout.html">
+<link rel="import" href="../bower_components/paper-material/paper-material.html">
+
+<link rel="import" href="shared-styles.html">
+<link rel="import" href="th-thng-list.html">
+<link rel="import" href="th-thng-details.html">
+
+<!--
+  Thngs page.
+
+  Renders list of thngs based on current search query,
+  allows to open thng details. Support clean loading straight to details page.
+-->
+<dom-module id="th-goods">
+  <template>
+    <style include="shared-styles iron-flex">
+      :host {
+        @apply(--app-page);
+        @apply(--layout-block);
+      }
+    </style>
+
+    <app-route
+      route="{{route}}"
+      pattern="/:id"
+
+      data="{{routeData}}"
+      active="{{detailsActive}}"
+    ></app-route>
+
+    <paper-material elevation="2">
+      <th-thng-list id="list" hidden$="{{detailsActive}}" user="{{user}}" filter="{{filter}}" on-item-selected="_onThngSelected" query="{{query}}"></th-thng-list>
+      <th-thng-details hidden$="{{!detailsActive}}" user="{{user}}" thng-id="{{thngId}}" route="{{route}}"></th-thng-details>
+    </paper-material>
+
+  </template>
+
+  <script>
+    Polymer({
+      is: 'th-goods',
+
+      properties: {
+        /**
+         * Search query to be passed to thng-list
+         */
+        query: String,
+
+        /**
+         * Id of selected thng to be passed to details view
+         */
+        thngId: String
+      },
+
+      observers: [
+        'fireResize(route.path)',
+        'fireResize(routeData.id)',
+
+        '_onIdChanged(routeData.id)'
+      ],
+
+      /**
+       * Handles change of thng selected in list, by loading
+       * it to the details view via route parameter.
+       *
+       * @param {CustomEvent} e
+       * @private
+       */
+      _onThngSelected: function(e) {
+        var thng = e.detail;
+
+        if (thng && thng.id) {
+          this.set('route.path', thng.id);
+        }
+      },
+
+      /**
+       * Debounces list resize on change events.
+       * Handles path changes, which may or may not hide the list component on this page.
+       */
+      fireResize: function() {
+        this.debounce('fire-resize', this._fireResize, 20);
+      },
+
+      /**
+       * Triggers actual list resize.
+       */
+      _fireResize: function() {
+        this.$.list.$.list.fire('iron-resize');
+      },
+
+      /**
+       * Checks if route change was provokated on accepted page.
+       * If true, passing it down to th-thng-details
+       *
+       * @param {String} newId
+       * @private
+       */
+      _onIdChanged: function(newId) {
+        if (this.route.prefix === '/goods') {
+          this.thngId = newId;
+        }
+      }
+    });
+  </script>
+</dom-module>
