@@ -310,7 +310,6 @@
           });
 
           EVT.Scan.setup({
-            createScanAction: true,
             redirect: false,
             spinner: {
               enabled: false
@@ -374,15 +373,29 @@
         scope.app.scan()
           .then(function (res) {
             scope.set('route.path', '/goods/' + res.evrythngId);
+            return scope.user.thng(res.evrythngId).read();
           })
-          .catch(function(err) {
-//          scope.showToast('Scan failed');
+          .catch(function() {
             scope.set('route.path', '/goods/UhYH9q5StqVrGPbEfK7bmbQp');
+            return scope.user.thng('UhYH9q5StqVrGPbEfK7bmbQp').read();
+          })
+          .then(scope._scanThng.bind(scope))
+          .catch(function() {
+            //
           })
           .then(function() {
             scope.$.loginForm.hidden = true;
             scope.set('loading', false);
           });
+      },
+
+      _scanThng: function(thng) {
+        var scope = this;
+
+        return scope.user.action('scans').create({
+          thng: thng.id,
+          user: scope.user.id
+        });
       },
 
       /**
