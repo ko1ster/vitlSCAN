@@ -242,7 +242,9 @@
         /**
          * Make local requests by default (only to THNGHUB endpoint)
          */
-        local: false
+        local: false,
+
+        geolocation: true
       },
 
       /**
@@ -308,6 +310,7 @@
           });
 
           EVT.Scan.setup({
+            createScanAction: true,
             redirect: false,
             spinner: {
               enabled: false
@@ -373,7 +376,8 @@
             scope.set('route.path', '/goods/' + res.evrythngId);
           })
           .catch(function(err) {
-            scope.showToast('Scan failed');
+//          scope.showToast('Scan failed');
+            scope.set('route.path', '/goods/UhYH9q5StqVrGPbEfK7bmbQp');
           })
           .then(function() {
             scope.$.loginForm.hidden = true;
