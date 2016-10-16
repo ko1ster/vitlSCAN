@@ -1,0 +1,55 @@
+<html><head><link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout.html">
+
+
+</head><body><dom-module id="th-object-view">
+  <template>
+    <style include="iron-flex">
+      :host {
+        display: block;
+      }
+
+      h5 {
+        margin: 0;
+        font-weight: normal;
+      }
+
+      section {
+        margin-bottom: var(--app-unit-xs);
+      }
+
+      .editor {
+        @apply(--layout-horizontal);
+        @apply(--layout-center);
+      }
+
+      .editor paper-input {
+        @apply(--layout-flex);
+      }
+
+      .separator {
+        margin: 0 var(--app-unit-sm);
+      }
+    </style>
+
+    <template is="dom-repeat" items="{{props}}">
+      <section hidden$="{{editing}}">
+        <h5>{{item.name}}</h5>
+        <span>{{item.value}}</span>
+      </section>
+    </template>
+
+    <container hidden$="{{!editing}}">
+      <template is="dom-repeat" items="{{props}}">
+        <section class="editor">
+          <paper-input no-label-float="" label="key" value="{{item.name}}"></paper-input>
+          <span class="separator">:</span>
+          <paper-input no-label-float="" label="value" value="{{item.value}}"></paper-input>
+          <paper-icon-button icon="close" on-tap="removeField"></paper-icon-button>
+        </section>
+      </template>
+      <paper-fab mini="" icon="add" title="Add Field" on-tap="addField"></paper-fab>
+    </container>
+
+  </template>
+  <script>Polymer({is:"th-object-view",behaviors:[TH.behaviors.objectProperties],properties:{object:{type:Object,notify:!0},props:{type:Array,computed:"_toArray(object)"},editing:{type:Boolean,value:!1}},observers:["updateObject(props.*)"],addField:function(){this.props||this.set("props",[]),this.push("props",{name:"",value:""})},removeField:function(t){var e=t.model.item,r=this.props.indexOf(e);this.splice("props",r,1)},updateObject:function(t){"props"!==t.path&&(this.object=this._toObject(this.props))},_toArray:function(t){return this._abstractListProperty(t)},_toObject:function(t){var e={};return t.forEach(function(t){e[t.name]=this._toRealValue(t.value)},this),e},_toRealValue:function(t){if("null"===t||null===t)return null;if("undefined"!==t&&void 0!==t){if("false"===t||t===!1)return!1;if("true"===t||t===!0)return!0;var e=t.trim&&t.trim()||t;return 0===e.length||isNaN(e)?t:isNaN(t)?t:parseFloat(t)}}});</script>
+</dom-module></body></html>

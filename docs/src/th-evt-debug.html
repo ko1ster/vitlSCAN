@@ -1,0 +1,99 @@
+<html><head><link rel="import" href="../bower_components/paper-material/paper-material.html">
+<link rel="import" href="../bower_components/iron-localstorage/iron-localstorage.html">
+<link rel="import" href="../bower_components/iron-list/iron-list.html">
+
+<link rel="import" href="shared-styles.html">
+<link rel="import" href="th-json-renderer.html">
+
+
+</head><body><dom-module id="th-evt-debug">
+  <template>
+    <style include="shared-styles">
+      :host {
+        @apply(--layout-block);
+        @apply(--layout-fixed-bottom);
+        @apply(--dark-theme);
+
+        transition: all .3s ease;
+        /* +10% to hide the shadow */
+        transform: translateY(110%);
+
+        /* json-renderer theme */
+        --json-theme-link: var(--paper-grey-400);
+        --json-theme-disclosure: var(--paper-grey-400);
+        --json-theme-syntax: var(--paper-grey-600);
+        --json-theme-string: var(--paper-green-300);
+        --json-theme-number: var(--paper-blue-400);
+        --json-theme-boolean: var(--paper-amber-500);
+        --json-theme-key: var(--paper-grey-400);
+        --json-theme-keyword: var(--paper-amber-500);
+
+        --text-base-color: var(--paper-grey-50);
+        --background-base-color: var(--paper-grey-900);
+      }
+
+      :host(.opened) {
+        transform: translateY(0%);
+      }
+
+      container {
+        @apply(--layout-vertical);
+        @apply(--app-code-font);
+
+        display: block;
+
+        height: 50vh;
+        overflow: auto;
+
+        background-color: var(--background-base-color);
+        color: var(--text-base-color);
+
+        /* Non-material shadow to be pointed upwards */
+        box-shadow: 0 -20px 70px rgba(0, 0, 0, .6);
+      }
+
+      th-json-renderer {
+        margin-bottom: var(--app-unit-xs);
+      }
+
+      .tools {
+        position: absolute;
+        right: 0;
+        top: 0;
+
+        text-align: right;
+        color:  var(--text-base-color);
+        padding: var(--app-unit-md) var(--app-unit-lg);
+      }
+
+      .stats {
+        @apply(--app-code-font);
+      }
+
+    </style>
+
+    <container id="scroller">
+      <template is="dom-repeat" items="{{events}}">
+        <div>
+          <span>&gt; </span><span>{{item.type}}</span>
+          <span>{{item.payload.url}}</span>
+          <th-json-renderer json="[[item.payload]]"></th-json-renderer>
+        </div>
+      </template>
+    </container>
+
+    <div class="tools">
+      <div class="toolbar">
+        <paper-icon-button icon="th:eraser" on-tap="clean"></paper-icon-button>
+        <paper-icon-button icon="close" on-tap="close"></paper-icon-button>
+      </div>
+      <div class="stats">
+        <span>total: </span><span>{{total}}</span>
+      </div>
+    </div>
+
+    <iron-localstorage name="th-devtool-opened" value="{{opened}}" on-iron-localstorage-load-empty="close"></iron-localstorage>
+
+  </template>
+  <script>Polymer({is:"th-evt-debug",properties:{opened:{type:Boolean,observer:"_onOpenedChanged"},events:{type:Array,value:[]},total:{type:Number,value:0}},ready:function(){var e=this;EVT.settings.interceptors.push({request:e.logRequest.bind(e),response:e.logResponse.bind(e)})},logRequest:function(e){this.inc("total",1),this.log({type:"REQUEST",payload:e})},logResponse:function(e){return this.log({type:"RESPONSE",payload:e}),e},inc:function(e,t){this.set(e,this[e]+t)},log:function(e){this.push("events",e),this.ensureFull(),this.async(function(){this.$.scroller.scrollTop=this.$.scroller.scrollHeight})},ensureFull:function(){this.events.length>100&&this.splice("events",0,1)},clean:function(){this.splice("events",0,this.events.length),this.set("total",0)},close:function(){this.set("opened",!1)},_onOpenedChanged:function(e){this.classList.toggle("opened",e),this.fire("state-changed",e)}});</script>
+</dom-module></body></html>
