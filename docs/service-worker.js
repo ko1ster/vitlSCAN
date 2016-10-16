@@ -29,7 +29,7 @@
 
 
 /* eslint-disable quotes, comma-spacing */
-var PrecacheConfig = [["/bower_components/webcomponentsjs/webcomponents-lite.min.js","f04ed23700daeb36f637bfe095960659"],["/index.html","1f031aaad0f2ee9e5283a48cd27e4cb6"],["/manifest.json","63810e5448e6d138bfc55a3b20750fc4"],["/src/th-app.html","42e8312b7a6557827ab3d6e871cd5741"],["/src/th-batches.html","8121789bb6c2d951f0257f0e6f367d97"],["/src/th-goods.html","30919464157f3bf371f55b0faa06af8f"],["/src/th-settings.html","de710d92712322713b993511541d3d84"],["/src/th-view404.html","df6b2e8a5521903092e9971469dcfd24"]];
+var PrecacheConfig = [["/bower_components/webcomponentsjs/webcomponents-lite.min.js","f04ed23700daeb36f637bfe095960659"],["/index.html","1f031aaad0f2ee9e5283a48cd27e4cb6"],["/manifest.json","63810e5448e6d138bfc55a3b20750fc4"],["/src/th-app.html","b6c358da90f9e60ec3a2ecaa6a11cc39"],["/src/th-batches.html","8121789bb6c2d951f0257f0e6f367d97"],["/src/th-goods.html","30919464157f3bf371f55b0faa06af8f"],["/src/th-settings.html","de710d92712322713b993511541d3d84"],["/src/th-view404.html","df6b2e8a5521903092e9971469dcfd24"]];
 /* eslint-enable quotes, comma-spacing */
 var CacheNamePrefix = 'sw-precache-v1--' + (self.registration ? self.registration.scope : '') + '-';
 

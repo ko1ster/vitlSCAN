@@ -308,7 +308,10 @@
           });
 
           EVT.Scan.setup({
-            redirect: false
+            redirect: false,
+            spinner: {
+              enabled: false
+            }
           });
 
           EVT.setup(settings);
@@ -363,6 +366,7 @@
       _scan: function() {
         var scope = this;
 
+        scope.$.loginForm.hidden = false;
         scope.set('loading', true);
         scope.app.scan()
           .then(function (res) {
@@ -372,6 +376,7 @@
             scope.showToast('Scan failed');
           })
           .then(function() {
+            scope.$.loginForm.hidden = true;
             scope.set('loading', false);
           });
       },
