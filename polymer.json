@@ -2,8 +2,8 @@
   "entrypoint": "index.html",
   "shell": "src/th-app.html",
   "fragments": [
-    "src/th-thngs.html",
-    "src/th-collections.html",
+    "src/th-goods.html",
+    "src/th-batches.html",
     "src/th-settings.html",
     "src/th-view404.html"
   ],
