@@ -22,6 +22,7 @@
     "evrythng": "4.0.1",
     "evrythng-ws": "^2.0.2",
     "evrythng-hub": "^1.2.2",
+    "evrythng-scan": "^1.2.2",
     "neon-animation": "^1.2.4",
     "paper-dialog": "^1.1.0",
     "paper-input": "^1.1.20",
